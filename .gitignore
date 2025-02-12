@@ -1,0 +1,43 @@
+# Python-related ignores
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+
+# Logs and databases
+*.log
+*.sqlite3
+db.sqlite3
+
+# Docker-related ignores
+*.env
+.env
+docker-compose.override.yml
+
+# Ignore compiled C extensions
+*.so
+
+# IDE/Editor-related ignores
+.idea/
+.vscode/
+*.iml
+
+# Jupyter Notebooks checkpoints (if you use them)
+.ipynb_checkpoints/
+
+# Test coverage reports
+htmlcov/
+.coverage
+*.cover
+
+# Pytest cache
+.pytest_cache/
+
+# Mypy and type-checking
+.mypy_cache/
+.dmypy.json
+
