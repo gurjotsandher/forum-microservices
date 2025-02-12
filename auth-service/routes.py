@@ -1,11 +1,15 @@
 from flask import Blueprint, request, jsonify
+from common.utils import validate_tenant_id
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/login', methods=['GET'])
+@auth_bp.route("/login", methods=["GET"])
 def login():
-    tenant_id = request.headers.get('X-Tenant-ID')
-    return jsonify({"message": f"Mock login success for tenant: {tenant_id}"}), 200
+    try:
+        tenant_id = validate_tenant_id(request.headers)
+        return jsonify({"message": f"Mock login success for tenant: {tenant_id}"})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 @auth_bp.route('/register', methods=['POST'])
 def register():

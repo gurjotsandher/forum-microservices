@@ -1,36 +1,23 @@
-from flask import Flask, request, jsonify
-from routes import handle_request
-import config
-import logging
+import requests
+from flask import Flask
+from werkzeug.exceptions import MethodNotAllowed, HTTPException
+from routes import gateway_bp
+from common.error_handlers import method_not_allowed_handler, http_exception_handler, unexpected_error_handler, \
+    service_unavailable_handler, bad_request_handler
+from common.logger import setup_logger
 
 app = Flask(__name__)
+app.logger = setup_logger("api-gateway")
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,  # Change to DEBUG for more details
-    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Register the Blueprint
+app.register_blueprint(gateway_bp, url_prefix="/", logger=app.logger)
 
-@app.route("/<service>/<path:endpoint>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-def gateway(service, endpoint):
-    """
-    Main gateway route to forward requests to microservices.
-    - service: Microservice name (e.g., auth-service, post-service)
-    - endpoint: The specific endpoint within that service
-    """
-    tenant_id = request.headers.get("X-Tenant-ID")
-
-    if not tenant_id:
-        return jsonify({"error": "Tenant ID is required"}), 400
-
-    try:
-        response = handle_request(service, endpoint, tenant_id, request)
-        logger.info(f"Response from {service}: {response.status_code}")
-        return response
-    except Exception as e:
-        logger.error(f"Error forwarding request to {service}: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+# Register shared error handlers
+app.register_error_handler(ValueError, bad_request_handler)
+app.register_error_handler(requests.exceptions.ConnectionError, service_unavailable_handler)
+app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
+app.register_error_handler(HTTPException, http_exception_handler)
+app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=config.API_GATEWAY_PORT, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

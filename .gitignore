@@ -41,3 +41,4 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 
+*.egg-info/
