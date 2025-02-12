@@ -16,4 +16,4 @@ app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app)
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

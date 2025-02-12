@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+    volumes:
+      - ./common:/app/common  # Mount common directory
+      - ./api-gateway:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - auth-service
+    networks:
+      - microservices-net
+
+  auth-service:
+    build:
+      context: ./auth-service
+    volumes:
+      - ./common:/app/common  # Mount common directory
+      - ./auth-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    ports:
+      - "5001:5001"
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
