@@ -132,7 +132,8 @@ This project is licensed under the **MIT License**. See the `LICENSE` file for m
 
 ## 💬 Contact  
 
-If you have any questions or feedback, reach out at `your-email@example.com`.  
+Have questions, suggestions, or just want to connect?  
+Feel free to reach out via [email](mailto:gurjotsa143@gmail.com) or connect with me on [LinkedIn](https://linkedin.com/in/gurjot-singh-developer).
 
 ---
 
