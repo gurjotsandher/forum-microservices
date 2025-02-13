@@ -31,6 +31,49 @@ services:
     networks:
       - microservices-net
 
+  config-service:
+    build:
+      context: ./config-service
+    volumes:
+      - ./common:/app/common
+      - ./config-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://user:password@config-db:5432/config_db
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "5002:5002"
+    depends_on:
+      - config-db
+      - redis
+    networks:
+      - microservices-net
+
+  config-db:
+    image: postgres:13
+    container_name: config-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: config_db
+    volumes:
+      - config-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - microservices-net
 networks:
   microservices-net:
     driver: bridge
+
+volumes:
+  config-db-data:
