@@ -5,15 +5,21 @@ services:
     build:
       context: ./api-gateway
     volumes:
-      - ./common:/app/common  # Mount common directory
+      - ./common:/app/common
       - ./api-gateway:/app
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
     ports:
-      - "5000:5000"  # Flask API
+      - "5000:5000"
     depends_on:
       - auth-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: always
     networks:
       - microservices-net
 
@@ -21,16 +27,84 @@ services:
     build:
       context: ./auth-service
     volumes:
-      - ./common:/app/common  # Mount common directory
+      - ./common:/app/common
       - ./auth-service:/app
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
     ports:
-      - "5001:5001"  # Flask API
+      - "5001:5001"
+    depends_on:
+      - config-service
+      - config-db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: always
+    networks:
+      - microservices-net
+
+  config-service:
+    build:
+      context: ./config-service
+    volumes:
+      - ./common:/app/common
+      - ./config-service:/app
+    env_file:
+      - .env
+    ports:
+      - "5002:5002"
+    depends_on:
+      - config-db
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: always
+    networks:
+      - microservices-net
+
+  config-db:
+    image: postgres:13
+    container_name: config-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: config_db
+    volumes:
+      - config-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - microservices-net
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    restart: always
     networks:
       - microservices-net
 
 networks:
   microservices-net:
     driver: bridge
+
+volumes:
+  config-db-data:
