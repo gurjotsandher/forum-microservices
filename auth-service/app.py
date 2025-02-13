@@ -1,3 +1,6 @@
+# import debugpy
+from dotenv import load_dotenv
+# import os
 from flask import Flask
 from werkzeug.exceptions import MethodNotAllowed, HTTPException
 from routes import auth_bp
@@ -6,6 +9,8 @@ from common.logger import setup_logger
 
 app = Flask(__name__)
 app.logger = setup_logger("auth-service")
+
+load_dotenv()
 
 # Register the shared error handlers
 app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
@@ -16,4 +21,4 @@ app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app)
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001)
