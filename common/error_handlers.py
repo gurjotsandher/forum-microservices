@@ -1,8 +1,11 @@
+import traceback
 from flask import jsonify
+from sqlalchemy.exc import SQLAlchemyError
+import jwt
 
 def method_not_allowed_handler(e):
     response = {
-        "error": "Method not allowed",
+        "error": "Method Not Allowed",
         "message": "The requested method is not allowed for this endpoint."
     }
     return jsonify(response), 405
@@ -16,7 +19,7 @@ def http_exception_handler(e):
     return jsonify(response), e.code
 
 def unexpected_error_handler(e, app):
-    app.logger.error(f"Unhandled exception: {e}")
+    app.logger.error(f"Unhandled exception: {traceback.format_exc()}")
     response = {
         "error": "Internal Server Error",
         "message": "Something went wrong on our end."
@@ -25,14 +28,49 @@ def unexpected_error_handler(e, app):
 
 def service_unavailable_handler(e):
     response = {
-        "error": "Service unavailable",
+        "error": "Service Unavailable",
         "message": str(e)
     }
     return jsonify(response), 503
 
 def bad_request_handler(e):
     response = {
-        "error": "Bad request",
+        "error": "Bad Request",
         "message": str(e)
     }
     return jsonify(response), 400
+
+def key_error_handler(e):
+    response = {
+        "error": "Key Error",
+        "message": f"Missing or invalid key: {str(e)}"
+    }
+    return jsonify(response), 400
+
+def value_error_handler(e):
+    response = {
+        "error": "Value Error",
+        "message": f"Invalid value: {str(e)}"
+    }
+    return jsonify(response), 400
+
+def database_error_handler(e):
+    response = {
+        "error": "Database Error",
+        "message": "A database error occurred. Please try again later."
+    }
+    return jsonify(response), 500
+
+def token_expired_handler(e):
+    response = {
+        "error": "Token Expired",
+        "message": "Your token has expired. Please log in again."
+    }
+    return jsonify(response), 401
+
+def invalid_token_handler(e):
+    response = {
+        "error": "Invalid Token",
+        "message": "The provided token is invalid. Please log in again."
+    }
+    return jsonify(response), 401

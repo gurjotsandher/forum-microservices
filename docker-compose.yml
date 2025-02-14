@@ -36,9 +36,10 @@ services:
       - "5001:5001"
     depends_on:
       - config-service
-      - config-db
+      - nba-db
+      - nfl-db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/auth/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -57,10 +58,10 @@ services:
     ports:
       - "5002:5002"
     depends_on:
-      - config-db
       - redis
+      - config-db  # Make sure it's listed as a dependency if you're using it for configuration
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/config/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -68,19 +69,59 @@ services:
     networks:
       - microservices-net
 
-  config-db:
+  config-db:  # Config database for storing tenant configurations
     image: postgres:13
     container_name: config-db
     ports:
-      - "5432:5432"
+      - "5435:5432"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: config_user
+      POSTGRES_PASSWORD: config_password
       POSTGRES_DB: config_db
     volumes:
       - config-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user"]
+      test: []
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - microservices-net
+
+  nba-db:
+    image: postgres:13
+    container_name: nba-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: nba_user
+      POSTGRES_PASSWORD: nba_password
+      POSTGRES_DB: nba_db
+    volumes:
+      - nba-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: []
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - microservices-net
+
+  nfl-db:
+    image: postgres:13
+    container_name: nfl-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: nfl_user
+      POSTGRES_PASSWORD: nfl_password
+      POSTGRES_DB: nfl_db
+    volumes:
+      - nfl-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: []
       interval: 30s
       timeout: 5s
       retries: 5
@@ -94,7 +135,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: []
       interval: 30s
       timeout: 3s
       retries: 5
@@ -107,4 +148,6 @@ networks:
     driver: bridge
 
 volumes:
+  nba-db-data:
+  nfl-db-data:
   config-db-data:

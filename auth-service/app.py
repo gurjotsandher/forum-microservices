@@ -1,29 +1,59 @@
-# import debugpy
-from dotenv import load_dotenv
-# import os
+import jwt
 from flask import Flask
+from flask_migrate import Migrate
+from sqlalchemy.exc import SQLAlchemyError  # <-- This is the import you were missing
 from werkzeug.exceptions import MethodNotAllowed, HTTPException
+
+from common.error_handlers import (
+    method_not_allowed_handler,
+    http_exception_handler,
+    unexpected_error_handler,
+    key_error_handler,
+    value_error_handler,
+    database_error_handler,
+    token_expired_handler,
+    invalid_token_handler
+)
+from extensions import db
+# Application-Specific Imports
 from routes import auth_bp
-from common.error_handlers import method_not_allowed_handler, http_exception_handler, unexpected_error_handler
-from common.logger import setup_logger
 
-app = Flask(__name__)
-app.logger = setup_logger("auth-service")
 
-load_dotenv()
+# # Load environment variables from .env file
+# load_dotenv()
 
-# Register the shared error handlers
-app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
-app.register_error_handler(HTTPException, http_exception_handler)
-app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app))
+# Create Flask app using factory pattern
+def create_app():
+    """Factory function to create and configure the Flask app."""
+    app = Flask(__name__)
+    app.config.from_object("config.Config")
 
-# Register the authentication routes
-app.register_blueprint(auth_bp, url_prefix='/auth')
+    # Initialize Flask-Migrate with the app and db instance
+    db.init_app(app)
+    migrate = Migrate(app, db)
 
-@app.route('/health', methods=['GET'])
-def health():
-    # Perform any basic checks if needed
-    return "OK", 200
+    # Register error handlers
+    register_error_handlers(app)
+
+    # Register authentication routes
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    return app
+
+# Register error handlers
+def register_error_handlers(app):
+    # Specific handlers for predictable exceptions
+    app.register_error_handler(KeyError, key_error_handler)
+    app.register_error_handler(ValueError, value_error_handler)
+    app.register_error_handler(SQLAlchemyError, database_error_handler)  # Now this works
+    app.register_error_handler(jwt.ExpiredSignatureError, token_expired_handler)
+    app.register_error_handler(jwt.InvalidTokenError, invalid_token_handler)
+
+    # General handlers for broader coverage
+    app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
+    app.register_error_handler(HTTPException, http_exception_handler)
+    app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app))
 
 if __name__ == "__main__":
+    app = create_app()
     app.run(host="0.0.0.0", port=5001)
