@@ -42,3 +42,5 @@ htmlcov/
 .dmypy.json
 
 *.egg-info/
+
+local-test-service/
