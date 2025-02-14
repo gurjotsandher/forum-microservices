@@ -7,7 +7,6 @@ from common.error_handlers import method_not_allowed_handler, http_exception_han
 from common.logger import setup_logger
 
 app = Flask(__name__)
-app.logger = setup_logger("api-gateway")
 
 # Register the Blueprint
 app.register_blueprint(gateway_bp, url_prefix="/", logger=app.logger)
@@ -18,11 +17,6 @@ app.register_error_handler(requests.exceptions.ConnectionError, service_unavaila
 app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
 app.register_error_handler(HTTPException, http_exception_handler)
 app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app))
-
-@app.route('/health', methods=['GET'])
-def health():
-    # Perform any basic checks if needed
-    return "OK", 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
