@@ -13,6 +13,11 @@ def gateway(service, endpoint):
     log_request(current_app.logger, service, endpoint, tenant_id)  # Use current_app.logger
     return handle_request(service, endpoint, tenant_id, request)
 
+@gateway_bp.route('/health', methods=['GET'])
+def health():
+    # Perform any basic checks if needed
+    return "OK", 200
+
 def handle_request(service, endpoint, tenant_id, client_request):
     if service not in config.SERVICE_MAP:
         raise ValueError(f"Service '{service}' not found in SERVICE_MAP")
