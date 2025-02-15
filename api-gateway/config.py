@@ -4,6 +4,6 @@ API_GATEWAY_PORT = 5000
 SERVICE_MAP = {
     "auth": "http://auth-service:5001/auth",
     "config": "http://config-service:5002/config",
-    "thread": "http://thread-service:5003/thread",
+    "db": "http://db-service:5003/db",
     "post": "http://post-service:5004/post"
 }

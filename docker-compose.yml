@@ -36,8 +36,6 @@ services:
       - "5001:5001"
     depends_on:
       - config-service
-      - nba-db
-      - nfl-db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/auth/health"]
       interval: 30s
@@ -59,9 +57,32 @@ services:
       - "5002:5002"
     depends_on:
       - redis
-      - config-db  # Make sure it's listed as a dependency if you're using it for configuration
+      - config-db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/config/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: always
+    networks:
+      - microservices-net
+
+  db-service:
+    build:
+      context: ./db-service
+    volumes:
+      - ./common:/app/common
+      - ./db-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    ports:
+      - "5003:5003"
+    depends_on:
+      - nba-db
+      - nfl-db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/db/health"]
       interval: 30s
       timeout: 5s
       retries: 3

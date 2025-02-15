@@ -1,0 +1,15 @@
+Flask==2.1.0
+Flask-SQLAlchemy==2.5.1
+Flask-Migrate==3.1.0
+psycopg2-binary==2.9.3
+requests==2.25.1
+Werkzeug==2.0.3
+SQLAlchemy==1.4.41
+marshmallow==3.14.1
+Flask-Paginate==0.8.1
+pytest==7.1.2
+pytest-flask==1.2.0
+PyJWT==2.10.1
+flask-caching==1.10.1
+flask-redis==0.4.0
+redis==4.1.4

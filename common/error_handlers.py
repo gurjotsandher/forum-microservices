@@ -1,9 +1,17 @@
-import traceback
-from flask import jsonify
-from sqlalchemy.exc import SQLAlchemyError
-import jwt
+import logging
+from flask import current_app, jsonify
+
+def get_dynamic_logger():
+    # Dynamically set the logger name based on the application context
+    # You can use current_app.name or any other relevant information
+    logger_name = current_app.name if hasattr(current_app, 'name') else 'unknown_service'
+    logger = logging.getLogger(logger_name)
+    return logger
 
 def method_not_allowed_handler(e):
+    logger = get_dynamic_logger()
+    logger.warning(f"Method Not Allowed: {str(e)}")  # Log the error context
+
     response = {
         "error": "Method Not Allowed",
         "message": "The requested method is not allowed for this endpoint."
@@ -11,6 +19,9 @@ def method_not_allowed_handler(e):
     return jsonify(response), 405
 
 def http_exception_handler(e):
+    logger = get_dynamic_logger()
+    logger.error(f"HTTP Exception: {str(e)}")  # Log the error details
+
     response = {
         "error": e.name,
         "code": e.code,
@@ -18,15 +29,20 @@ def http_exception_handler(e):
     }
     return jsonify(response), e.code
 
-def unexpected_error_handler(e, app):
-    app.logger.error(f"Unhandled exception: {traceback.format_exc()}")
+def unexpected_error_handler(e):
+    logger = get_dynamic_logger()
+    logger.critical(f"Unexpected Error: {str(e)}")  # Log the unexpected error
+
     response = {
-        "error": "Internal Server Error",
+        "error": f"Internal Server Error: {str(e)}",
         "message": "Something went wrong on our end."
     }
     return jsonify(response), 500
 
 def service_unavailable_handler(e):
+    logger = get_dynamic_logger()
+    logger.error(f"Service Unavailable: {str(e)}")  # Log service availability issues
+
     response = {
         "error": "Service Unavailable",
         "message": str(e)
@@ -34,43 +50,17 @@ def service_unavailable_handler(e):
     return jsonify(response), 503
 
 def bad_request_handler(e):
+    logger = get_dynamic_logger()
+    logger.warning(f"Bad Request: {str(e)}")  # Log invalid request error
+
     response = {
         "error": "Bad Request",
         "message": str(e)
     }
     return jsonify(response), 400
 
-def key_error_handler(e):
-    response = {
-        "error": "Key Error",
-        "message": f"Missing or invalid key: {str(e)}"
-    }
-    return jsonify(response), 400
-
-def value_error_handler(e):
-    response = {
-        "error": "Value Error",
-        "message": f"Invalid value: {str(e)}"
-    }
-    return jsonify(response), 400
-
-def database_error_handler(e):
-    response = {
-        "error": "Database Error",
-        "message": "A database error occurred. Please try again later."
-    }
-    return jsonify(response), 500
-
-def token_expired_handler(e):
-    response = {
-        "error": "Token Expired",
-        "message": "Your token has expired. Please log in again."
-    }
-    return jsonify(response), 401
-
-def invalid_token_handler(e):
-    response = {
-        "error": "Invalid Token",
-        "message": "The provided token is invalid. Please log in again."
-    }
-    return jsonify(response), 401
+def log_exception(error):
+    """Log the details of unhandled exceptions."""
+    logger = get_dynamic_logger()
+    logger.error(f"Unhandled error: {str(error)}", exc_info=True)
+    return jsonify({'error': 'An unexpected error occurred'}), 500
