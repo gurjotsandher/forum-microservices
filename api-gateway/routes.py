@@ -10,7 +10,9 @@ gateway_bp = Blueprint('gateway', __name__)
 @gateway_bp.route("/<service>/<path:endpoint>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 def gateway(service, endpoint):
     tenant_id = validate_tenant_id(request.headers)
+    print('logger request init')
     log_request(current_app.logger, service, endpoint, tenant_id)  # Use current_app.logger
+    print(f"logger request done")
     return handle_request(service, endpoint, tenant_id, request)
 
 @gateway_bp.route('/health', methods=['GET'])

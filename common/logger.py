@@ -28,3 +28,5 @@ def log_request(logger, service, endpoint, tenant_id):
     Logs the incoming request details using the provided logger.
     """
     logger.info(f"Tenant: {tenant_id} | Service: {service} | Endpoint: {endpoint}")
+    print(f"logger info added")
+

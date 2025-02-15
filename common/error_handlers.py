@@ -20,7 +20,7 @@ def http_exception_handler(e):
 
 def unexpected_error_handler(e):
     response = {
-        "error": "Internal Server Error",
+        "error": f"Internal Server Error: {str(e)}",
         "message": "Something went wrong on our end."
     }
     return jsonify(response), 500

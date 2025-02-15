@@ -22,13 +22,10 @@ def create_app():
     """Factory function to create and configure the Flask app."""
     app = Flask(__name__)
     app.config.from_object("config.Config")
-    print("App initialized")
 
     db.init_app(app)
-    print("DB  initialized")
 
     cache.init_app(app)
-    print("Cache initialized")
 
     migrate = Migrate(app, db)
 
