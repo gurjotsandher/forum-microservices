@@ -7,6 +7,7 @@ from common.db_utils import get_tenant_db_url
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 import logging
+from common.error_handlers import get_dynamic_logger
 
 thread_bp = Blueprint('thread', __name__)
 thread_schema = ThreadSchema()
@@ -23,15 +24,19 @@ def get_db_session(tenant_id):
 @thread_bp.route('/', methods=['POST'])
 def create_thread():
     """Create a new thread for a tenant's board with Marshmallow validation."""
+    logger = get_dynamic_logger()  # Initialize the logger here
+
     tenant_id = request.headers.get('X-Tenant-ID')
     try:
         data = thread_schema.load(request.get_json())  # Automatically validates input
     except ValidationError as err:
+        logger.error(f"Validation error: {err.messages}")  # Log validation error
         return jsonify({"error": err.messages}), 400
 
     db_session = get_db_session(tenant_id)
     board = db_session.query(Board).get(data['board_id'])  # Ensure the board exists
     if not board:
+        logger.warning(f"Board with ID {data['board_id']} not found for tenant {tenant_id}.")  # Log board not found
         return jsonify({"error": "Board not found"}), 404
 
     # Create the thread with title and description
@@ -39,6 +44,7 @@ def create_thread():
     db_session.add(thread)
     db_session.commit()
 
+    logger.info(f"Thread created: ID {thread.id}, Title: {thread.title} for tenant {tenant_id}.")  # Log thread creation success
     return jsonify({
         "message": "Thread created successfully",
         "thread_id": thread.id,
@@ -50,9 +56,12 @@ def create_thread():
 @thread_bp.route('/', methods=['GET'])
 def get_all_threads():
     """Retrieve all threads for a tenant with optional pagination and search."""
+    logger = get_dynamic_logger()  # Initialize the logger here
+
     tenant_id = request.headers.get('X-Tenant-ID')
 
     if not tenant_id:
+        logger.warning("Tenant ID is missing in the request headers.")
         return jsonify({"error": "Tenant ID is missing"}), 400
 
     try:
@@ -85,26 +94,31 @@ def get_all_threads():
                 "description": thread.description
             })
 
+        logger.info(f"Retrieved {len(threads)} threads for tenant {tenant_id}.")  # Log successful retrieval
         return jsonify(response), 200
 
     except SQLAlchemyError as e:
-        # Log the error message
-        logging.error(f"Database error occurred: {str(e)}")
+        # Log the database error
+        logger.error(f"Database error occurred: {str(e)}")
         return jsonify({"error": "Database error", "message": str(e)}), 500
 
     except Exception as e:
         # Log any other unexpected errors
-        logging.error(f"Unexpected error occurred: {str(e)}")
+        logger.error(f"Unexpected error occurred: {str(e)}")
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
 
 @thread_bp.route('/<int:thread_id>', methods=['GET'])
 def get_thread(thread_id):
     """Retrieve a single thread by its ID."""
+    logger = get_dynamic_logger()  # Initialize the logger here
+
     tenant_id = request.headers.get('X-Tenant-ID')
     db_session = get_db_session(tenant_id)
 
     thread = db_session.query(Thread).get(thread_id)
     if thread is None:
+        logger.warning(f"Thread with ID {thread_id} not found for tenant {tenant_id}.")  # Log thread not found
         return jsonify({"error": "Thread not found"}), 404
 
     return jsonify({
@@ -114,18 +128,23 @@ def get_thread(thread_id):
         "description": thread.description
     }), 200
 
+
 @thread_bp.route('/<int:thread_id>', methods=['PUT'])
 def update_thread(thread_id):
     """Update an existing thread by its ID with Marshmallow validation."""
+    logger = get_dynamic_logger()  # Initialize the logger here
+
     tenant_id = request.headers.get('X-Tenant-ID')
     try:
         data = thread_schema.load(request.get_json(), partial=True)
     except ValidationError as err:
+        logger.error(f"Validation error: {err.messages}")  # Log validation error
         return jsonify({"error": err.messages}), 400
 
     db_session = get_db_session(tenant_id)
     thread = db_session.query(Thread).get(thread_id)
     if thread is None:
+        logger.warning(f"Thread with ID {thread_id} not found for tenant {tenant_id}.")  # Log thread not found
         return jsonify({"error": "Thread not found"}), 404
 
     thread.title = data.get('title', thread.title)
@@ -133,18 +152,25 @@ def update_thread(thread_id):
     thread.description = data.get('description', thread.description)
     db_session.commit()
 
+    logger.info(f"Thread with ID {thread.id} updated for tenant {tenant_id}.")  # Log successful update
     return jsonify({"message": "Thread updated successfully"}), 200
+
 
 @thread_bp.route('/<int:thread_id>', methods=['DELETE'])
 def delete_thread(thread_id):
     """Delete a thread by its ID."""
+    logger = get_dynamic_logger()  # Initialize the logger here
+
     tenant_id = request.headers.get('X-Tenant-ID')
     db_session = get_db_session(tenant_id)
 
     thread = db_session.query(Thread).get(thread_id)
     if thread is None:
+        logger.warning(f"Thread with ID {thread_id} not found for tenant {tenant_id}.")  # Log thread not found
         return jsonify({"error": "Thread not found"}), 404
 
     db_session.delete(thread)
     db_session.commit()
+
+    logger.info(f"Thread with ID {thread.id} deleted for tenant {tenant_id}.")  # Log successful deletion
     return jsonify({"message": "Thread deleted successfully"}), 200

@@ -1,6 +1,7 @@
 import logging
 
 def setup_logger(name):
+    """Deprecated use dyanmic logger in error_handler.py"""
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 

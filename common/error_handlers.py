@@ -1,14 +1,12 @@
 import logging
 from flask import current_app, jsonify
 
-
 def get_dynamic_logger():
     # Dynamically set the logger name based on the application context
     # You can use current_app.name or any other relevant information
     logger_name = current_app.name if hasattr(current_app, 'name') else 'unknown_service'
     logger = logging.getLogger(logger_name)
     return logger
-
 
 def method_not_allowed_handler(e):
     logger = get_dynamic_logger()
@@ -19,7 +17,6 @@ def method_not_allowed_handler(e):
         "message": "The requested method is not allowed for this endpoint."
     }
     return jsonify(response), 405
-
 
 def http_exception_handler(e):
     logger = get_dynamic_logger()
@@ -32,7 +29,6 @@ def http_exception_handler(e):
     }
     return jsonify(response), e.code
 
-
 def unexpected_error_handler(e):
     logger = get_dynamic_logger()
     logger.critical(f"Unexpected Error: {str(e)}")  # Log the unexpected error
@@ -42,7 +38,6 @@ def unexpected_error_handler(e):
         "message": "Something went wrong on our end."
     }
     return jsonify(response), 500
-
 
 def service_unavailable_handler(e):
     logger = get_dynamic_logger()
@@ -54,7 +49,6 @@ def service_unavailable_handler(e):
     }
     return jsonify(response), 503
 
-
 def bad_request_handler(e):
     logger = get_dynamic_logger()
     logger.warning(f"Bad Request: {str(e)}")  # Log invalid request error
@@ -64,3 +58,9 @@ def bad_request_handler(e):
         "message": str(e)
     }
     return jsonify(response), 400
+
+def log_exception(error):
+    """Log the details of unhandled exceptions."""
+    logger = get_dynamic_logger()
+    logger.error(f"Unhandled error: {str(error)}", exc_info=True)
+    return jsonify({'error': 'An unexpected error occurred'}), 500

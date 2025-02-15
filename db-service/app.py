@@ -1,22 +1,19 @@
-from flask import Flask, request, jsonify
+import requests
+from flask import Flask, request
 from flask_migrate import Migrate
-from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import MethodNotAllowed, HTTPException
-import jwt
-from extensions import db, cache
-from routes import db_bp
-from marshmallow import ValidationError
+from models import Board, Thread
+from common.db_utils import get_tenant_db_url
 from common.error_handlers import (
-    # key_error_handler,
-    # value_error_handler,
     unexpected_error_handler,
     method_not_allowed_handler,
-    # database_error_handler,
-    # token_expired_handler,
-    # invalid_token_handler,
-    http_exception_handler
+    http_exception_handler,
+    bad_request_handler,
+    service_unavailable_handler,
+    log_exception
 )
-from common.db_utils import get_tenant_db_url  # Corrected import
+from extensions import db, cache
+from routes import db_bp
 
 def create_app():
     """Factory function to create and configure the Flask app."""
@@ -24,7 +21,6 @@ def create_app():
     app.config.from_object("config.Config")
 
     db.init_app(app)
-
     cache.init_app(app)
 
     migrate = Migrate(app, db)
@@ -43,24 +39,23 @@ def create_app():
             try:
                 db_url = get_tenant_db_url(tenant_id)
                 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+                app.logger.info(f"Database URL set for tenant {tenant_id}")
             except Exception as e:
+                app.logger.error(f"Failed to fetch DB URL for tenant {tenant_id}: {str(e)}")
                 return {'error': str(e)}, 500
 
     return app
 
 def register_error_handlers(app):
     """Register custom error handlers for the application."""
-    # Specific handlers for predictable exceptions
-    # app.register_error_handler(KeyError, key_error_handler)
-    # app.register_error_handler(ValueError, value_error_handler)
-    # app.register_error_handler(SQLAlchemyError, database_error_handler)  # Now this works
-    # app.register_error_handler(jwt.ExpiredSignatureError, token_expired_handler)
-    # app.register_error_handler(jwt.InvalidTokenError, invalid_token_handler)
-
-    # General handlers for broader coverage
+    app.register_error_handler(ValueError, bad_request_handler)
+    app.register_error_handler(requests.exceptions.ConnectionError, service_unavailable_handler)
     app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
     app.register_error_handler(HTTPException, http_exception_handler)
-    app.register_error_handler(Exception, unexpected_error_handler)  # No need for lambda
+    app.register_error_handler(Exception, unexpected_error_handler)
+
+    # Log any unhandled exceptions
+    app.register_error_handler(Exception, log_exception)
 
 def validation_error_handler(err):
     """Handle Marshmallow validation errors."""

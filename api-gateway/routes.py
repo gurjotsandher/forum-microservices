@@ -34,6 +34,11 @@ def gateway(service, endpoint):
         logger.exception(f"Unexpected error occurred while processing request: {str(e)}")
         return jsonify({"error": "Internal Server Error", "message": "Something went wrong on our end."}), 500
 
+@gateway_bp.route('/health', methods=['GET'])
+def health():
+    # Perform any basic checks if needed
+    return "OK", 200
+
 def handle_request(service, endpoint, tenant_id, client_request):
     logger = get_dynamic_logger()
     if service not in config.SERVICE_MAP:
