@@ -52,7 +52,7 @@ def register_error_handlers(app):
     # General handlers for broader coverage
     app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)
     app.register_error_handler(HTTPException, http_exception_handler)
-    app.register_error_handler(Exception, lambda e: unexpected_error_handler(e, app))
+    app.register_error_handler(Exception, lambda e: unexpected_error_handler(e))
 
 if __name__ == "__main__":
     app = create_app()

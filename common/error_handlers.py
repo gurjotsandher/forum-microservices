@@ -1,5 +1,5 @@
 import traceback
-from flask import jsonify
+from flask import current_app, jsonify
 from sqlalchemy.exc import SQLAlchemyError
 import jwt
 
@@ -18,8 +18,7 @@ def http_exception_handler(e):
     }
     return jsonify(response), e.code
 
-def unexpected_error_handler(e, app):
-    app.logger.error(f"Unhandled exception: {traceback.format_exc()}")
+def unexpected_error_handler(e):
     response = {
         "error": "Internal Server Error",
         "message": "Something went wrong on our end."
