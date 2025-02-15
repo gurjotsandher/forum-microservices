@@ -7,13 +7,13 @@ from extensions import db, cache
 from routes import db_bp
 from marshmallow import ValidationError
 from common.error_handlers import (
-    key_error_handler,
-    value_error_handler,
+    # key_error_handler,
+    # value_error_handler,
     unexpected_error_handler,
     method_not_allowed_handler,
-    database_error_handler,
-    token_expired_handler,
-    invalid_token_handler,
+    # database_error_handler,
+    # token_expired_handler,
+    # invalid_token_handler,
     http_exception_handler
 )
 from common.db_utils import get_tenant_db_url  # Corrected import
@@ -51,11 +51,11 @@ def create_app():
 def register_error_handlers(app):
     """Register custom error handlers for the application."""
     # Specific handlers for predictable exceptions
-    app.register_error_handler(KeyError, key_error_handler)
-    app.register_error_handler(ValueError, value_error_handler)
-    app.register_error_handler(SQLAlchemyError, database_error_handler)  # Now this works
-    app.register_error_handler(jwt.ExpiredSignatureError, token_expired_handler)
-    app.register_error_handler(jwt.InvalidTokenError, invalid_token_handler)
+    # app.register_error_handler(KeyError, key_error_handler)
+    # app.register_error_handler(ValueError, value_error_handler)
+    # app.register_error_handler(SQLAlchemyError, database_error_handler)  # Now this works
+    # app.register_error_handler(jwt.ExpiredSignatureError, token_expired_handler)
+    # app.register_error_handler(jwt.InvalidTokenError, invalid_token_handler)
 
     # General handlers for broader coverage
     app.register_error_handler(MethodNotAllowed, method_not_allowed_handler)

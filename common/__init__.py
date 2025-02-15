@@ -6,7 +6,6 @@ logging.basicConfig(
     format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
     handlers=[
         logging.StreamHandler(),  # Logs to the console
-        logging.FileHandler('app.log')  # Logs to a file
     ]
 )
 
