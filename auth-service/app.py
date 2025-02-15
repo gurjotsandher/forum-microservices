@@ -1,9 +1,6 @@
-import jwt
 from flask import Flask
 from flask_migrate import Migrate
-from sqlalchemy.exc import SQLAlchemyError  # <-- This is the import you were missing
 from werkzeug.exceptions import MethodNotAllowed, HTTPException
-
 from common.error_handlers import (
     method_not_allowed_handler,
     http_exception_handler,
@@ -18,19 +15,11 @@ from extensions import db
 # Application-Specific Imports
 from routes import auth_bp
 
-
-# # Load environment variables from .env file
-# load_dotenv()
-
 # Create Flask app using factory pattern
 def create_app():
     """Factory function to create and configure the Flask app."""
     app = Flask(__name__)
     app.config.from_object("config.Config")
-
-    # Initialize Flask-Migrate with the app and db instance
-    db.init_app(app)
-    migrate = Migrate(app, db)
 
     # Register error handlers
     register_error_handlers(app)
