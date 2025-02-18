@@ -80,6 +80,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+
     ports:
       - "5003:5003"
     depends_on:

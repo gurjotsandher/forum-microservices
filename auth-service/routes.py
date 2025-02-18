@@ -22,7 +22,7 @@ def register():
     # Retrieve user information from the request body
     username = data.get('username')
     email = data.get('email')
-    password = data.get('password')
+    password = generate_password_hash(data.get('password'))
 
     # Validate the input
     if not all([username, email, password]):
@@ -62,22 +62,27 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """User login endpoint."""
-    # data = request.get_json()
-    # tenant_id = request.headers.get('X-Tenant-ID')  # Get tenant ID from request header
-    # email = data.get('email')
-    # password = data.get('password')
-    #
-    # # Find the user by email in the tenant's database
-    # user = db_session.query(User).filter_by(email=email).first()
-    #
-    # if user is None or not user.check_password(password):
-    #     return jsonify({"error": "Invalid email or password"}), 401
-    #
-    # # Generate JWT token for the user
-    # token = generate_token(user.id, current_app.config['JWT_SECRET_KEY'])
-    # print(f"Token => {token}")
+    data = request.get_json()
+    tenant_id = request.headers.get('X-Tenant-ID')  # Get tenant ID from request header
+    email = data.get('email')
+    password = data.get('password')
 
-    return jsonify({"token": None}), 200
+    user_data = {"email": email, "password": password}
+    headers = {"X-Tenant-ID": tenant_id}
+
+    try:
+        get_login_url = f"{current_app.config['DB_SERVICE_URL']}/db/user/login"
+        db_response = requests.post(get_login_url, json=user_data, headers=headers)
+        if db_response.status_code == 200:
+            return jsonify({"message": f"Successfully logged in user {db_response.json()['username']}"}), 200
+        else:
+            # Log the error from db-service and return a 500 error
+            current_app.logger.error(f"Failed to login user: {db_response.json()}")
+            return jsonify({"error": "Failed to login user", "details": db_response.json()}), 500
+
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Error while making request to db-service: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 # Health check endpoint
 @auth_bp.route('/health', methods=['GET'])
