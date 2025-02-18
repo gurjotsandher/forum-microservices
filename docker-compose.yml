@@ -10,6 +10,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+      - FLASK_DEBUG=1
+      - PYTHONDEBUG=1
     ports:
       - "5000:5000"
     depends_on:
@@ -29,10 +31,13 @@ services:
     volumes:
       - ./common:/app/common
       - ./auth-service:/app
+    env_file:
+      - ./.env
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
-      - DB_SERVICE_URL=http://db-service:5003
+      - FLASK_DEBUG=1
+      - PYTHONDEBUG=1
     ports:
       - "5001:5001"
     depends_on:
@@ -56,6 +61,11 @@ services:
       - .env
     ports:
       - "5002:5002"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - FLASK_DEBUG=1
+      - PYTHONDEBUG=1
     depends_on:
       - redis
       - config-db
@@ -74,9 +84,13 @@ services:
     volumes:
       - ./common:/app/common
       - ./db-service:/app
+    env_file:
+      - .env
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+      - FLASK_DEBUG=1
+      - PYTHONDEBUG=1
     ports:
       - "5003:5003"
     depends_on:

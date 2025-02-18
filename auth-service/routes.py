@@ -1,13 +1,9 @@
 from flask import Blueprint, request, jsonify, current_app
-from common.auth_utils import generate_token
 import requests
-import os
-import logging
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
+from config import Config
 
 auth_bp = Blueprint('auth', __name__)
-db_service_url = os.getenv('DB_SERVICE_URL')
-
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -32,19 +28,16 @@ def register():
     if '@' not in email:
         return jsonify({"error": "Invalid email format"}), 400
 
-    # Hash the password before sending to db-service
-    hashed_password = generate_password_hash(password)
-
     # Prepare the user data for the db-service
     # IMPORTANT: The password is being double hashed we need to remove that in db-service
-    user_data = {"username": username, "email": email, "password": hashed_password}
+    user_data = {"username": username, "email": email, "password": password}
 
     # Set up the request headers with the tenant ID
     headers = {"X-Tenant-ID": tenant_id}
 
     try:
         # Make a request to the db-service to save the new user
-        create_user_url = f"{current_app.config['DB_SERVICE_URL']}/db/user/register"
+        create_user_url = f"{Config.DB_SERVICE_URL}/db/user/register"
         db_response = requests.post(create_user_url, json=user_data, headers=headers)
 
         # Check the db-service response
@@ -71,7 +64,7 @@ def login():
     headers = {"X-Tenant-ID": tenant_id}
 
     try:
-        get_login_url = f"{current_app.config['DB_SERVICE_URL']}/db/user/login"
+        get_login_url = f"{Config.DB_SERVICE_URL}/db/user/login"
         db_response = requests.post(get_login_url, json=user_data, headers=headers)
         if db_response.status_code == 200:
             return jsonify({"message": f"Successfully logged in user {db_response.json()['username']}"}), 200
