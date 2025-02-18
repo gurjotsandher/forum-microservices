@@ -33,9 +33,6 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - DB_SERVICE_URL=http://db-service:5003
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-
     ports:
       - "5001:5001"
     depends_on:
@@ -80,9 +77,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-
     ports:
       - "5003:5003"
     depends_on:
