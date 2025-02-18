@@ -19,7 +19,6 @@ from routes import auth_bp
 def create_app():
     """Factory function to create and configure the Flask app."""
     app = Flask(__name__)
-    app.config.from_object("config.Config")
 
     # Register error handlers
     register_error_handlers(app)

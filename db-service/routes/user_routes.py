@@ -51,7 +51,7 @@ def register_user():
             logger.warning(f"Username {username} already exists for tenant {tenant_id}.")  # Log duplicate username
             return jsonify({"error": "Username already exists"}), 409
 
-        # Create the user and hash the password
+        # Create the user and the password
         user = User(username=username, email=email, password=password, role='user')
 
         # Add the user to the tenant-specific database
