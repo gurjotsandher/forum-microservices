@@ -1,63 +1,63 @@
 from flask import Blueprint, request, jsonify, current_app
-from extensions import db
-from models import User
 from common.auth_utils import generate_token
 import requests
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import os
+import logging
+from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint('auth', __name__)
+db_service_url = os.getenv('DB_SERVICE_URL')
 
-def get_tenant_db_url(tenant_id):
-    """Fetch the database URL for a tenant from config-service."""
-    config_service_url = f"http://config-service:5002/config/get-config/{tenant_id}"
-
-    # Send GET request to fetch config from config-service
-    response = requests.get(config_service_url, headers={"Authorization": f"Bearer {current_app.config['JWT_SECRET_KEY']}"})
-    if response.status_code == 200:
-        print("Response successful")
-        config_data = response.json()
-        return config_data.get("database_url")
-    else:
-        raise Exception(f"Failed to fetch config for tenant {tenant_id}. Status Code: {response.status_code}")
-
-def get_db_session(tenant_id):
-    """Get a session for the tenant's specific database."""
-    db_url = get_tenant_db_url(tenant_id)
-    print('db_url =>' + str(db_url))
-    engine = create_engine(db_url)
-    print('Engine created')
-    Session = sessionmaker(bind=engine)
-    print("Session established")
-    return Session()
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """User registration endpoint."""
     data = request.get_json()
-    tenant_id = request.headers.get('X-Tenant-ID')  # Get tenant ID from request header
+
+    # Retrieve the tenant ID from the header
+    tenant_id = request.headers.get('X-Tenant-ID')
+    if not tenant_id:
+        return jsonify({"error": "Tenant ID missing in header"}), 400
+
+    # Retrieve user information from the request body
     username = data.get('username')
     email = data.get('email')
-    password = data.get('password')
+    password = generate_password_hash(data.get('password'))
 
+    # Validate the input
     if not all([username, email, password]):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Get the tenant-specific database session
-    db_session = get_db_session(tenant_id)
+    # Validate email format (simplified check)
+    if '@' not in email:
+        return jsonify({"error": "Invalid email format"}), 400
 
-    # Check if the email is already registered in the tenant's database
-    if db_session.query(User).filter_by(email=email).first():
-        return jsonify({"error": "Email already registered"}), 409
+    # Hash the password before sending to db-service
+    hashed_password = generate_password_hash(password)
 
-    # Create the user and hash the password
-    user = User(username=username, email=email, password=password, role='user')
-    print(f"User created: {user}")
-    # Add the user to the tenant-specific database
-    db_session.add(user)
-    db_session.commit()
+    # Prepare the user data for the db-service
+    # IMPORTANT: The password is being double hashed we need to remove that in db-service
+    user_data = {"username": username, "email": email, "password": hashed_password}
 
-    return jsonify({"message": f"User {username} registered successfully"}), 201
+    # Set up the request headers with the tenant ID
+    headers = {"X-Tenant-ID": tenant_id}
+
+    try:
+        # Make a request to the db-service to save the new user
+        create_user_url = f"{current_app.config['DB_SERVICE_URL']}/db/user/register"
+        db_response = requests.post(create_user_url, json=user_data, headers=headers)
+
+        # Check the db-service response
+        if db_response.status_code == 201:
+            return jsonify({"message": f"User {username} registered successfully"}), 201
+        else:
+            # Log the error from db-service and return a 500 error
+            current_app.logger.error(f"Failed to register user: {db_response.json()}")
+            return jsonify({"error": "Failed to register user", "details": db_response.json()}), 500
+    except requests.exceptions.RequestException as e:
+        # Log request exception errors
+        current_app.logger.error(f"Error while making request to db-service: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -67,22 +67,22 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
-    # Get the tenant-specific database session
-    db_session = get_db_session(tenant_id)
-    print(f"db session =>  {db_session}")
+    user_data = {"email": email, "password": password}
+    headers = {"X-Tenant-ID": tenant_id}
 
-    # Find the user by email in the tenant's database
-    user = db_session.query(User).filter_by(email=email).first()
-    print(f"User => {user}")
+    try:
+        get_login_url = f"{current_app.config['DB_SERVICE_URL']}/db/user/login"
+        db_response = requests.post(get_login_url, json=user_data, headers=headers)
+        if db_response.status_code == 200:
+            return jsonify({"message": f"Successfully logged in user {db_response.json()['username']}"}), 200
+        else:
+            # Log the error from db-service and return a 500 error
+            current_app.logger.error(f"Failed to login user: {db_response.json()}")
+            return jsonify({"error": "Failed to login user", "details": db_response.json()}), 500
 
-    if user is None or not user.check_password(password):
-        return jsonify({"error": "Invalid email or password"}), 401
-
-    # Generate JWT token for the user
-    token = generate_token(user.id, current_app.config['JWT_SECRET_KEY'])
-    print(f"Token => {token}")
-
-    return jsonify({"token": token}), 200
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Error while making request to db-service: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 # Health check endpoint
 @auth_bp.route('/health', methods=['GET'])

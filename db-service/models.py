@@ -15,7 +15,7 @@ class User(db.Model):
     def __init__(self, username, email, password, role):
         self.username = username
         self.email = email
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = password
         self.role = role
 
     def check_password(self, password):
@@ -23,8 +23,8 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     def set_password(self, password):
-        """Set the password hash"""
-        self.password_hash = generate_password_hash(password)
+        """Set the password hash in the gateway to protect data while it transits"""
+        self.password_hash = password
 
 class Board(db.Model):
     __tablename__ = 'boards'
