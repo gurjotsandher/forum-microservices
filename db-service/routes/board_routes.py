@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from marshmallow import ValidationError
+
+from config import Config
 from models import Board, Thread
 from schemas import BoardSchema
 from common.db_utils import get_tenant_db_url
@@ -12,7 +14,7 @@ board_schema = BoardSchema()
 
 def get_db_session(tenant_id):
     """Get a session for the tenant's specific database."""
-    db_url = get_tenant_db_url(tenant_id)
+    db_url = get_tenant_db_url(tenant_id, Config.JWT_SECRET_KEY)
     engine = create_engine(db_url)
     Session = sessionmaker(bind=engine)
     return Session()
@@ -21,7 +23,6 @@ def get_db_session(tenant_id):
 
 @board_bp.route('/', methods=['POST'])
 def create_board():
-    """Create a new board for a tenant with Marshmallow validation."""
     logger = get_dynamic_logger()
     tenant_id = request.headers.get('X-Tenant-ID')
     try:

@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+
+from config import Config
 from models import User
 from schemas import UserSchema
 from sqlalchemy import create_engine
@@ -14,7 +16,7 @@ user_schema = UserSchema()
 
 def get_db_session(tenant_id):
     """Get a session for the tenant's specific database."""
-    db_url = get_tenant_db_url(tenant_id)
+    db_url = get_tenant_db_url(tenant_id, Config.JWT_SECRET_KEY)
     engine = create_engine(db_url)
     Session = sessionmaker(bind=engine)
     return Session()

@@ -1,5 +1,4 @@
 from flask import Flask
-from flask_migrate import Migrate
 from werkzeug.exceptions import MethodNotAllowed, HTTPException
 from common.error_handlers import (
     method_not_allowed_handler,

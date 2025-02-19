@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from extensions import db, cache
 from models import TenantConfig
 from auth import token_required
+from common.auth_utils import generate_token, verify_token
+from config import Config
 
 config_bp = Blueprint("config", __name__)
 
@@ -13,16 +15,16 @@ def get_config(tenant_id):
         return jsonify(cached_config), 200
 
     # Query the tenant configuration from the database
-    config = TenantConfig.query.filter_by(tenant_id=tenant_id).first()
+    db_response = TenantConfig.query.filter_by(tenant_id=tenant_id).first()
 
-    if not config:
+    if not db_response:
         return jsonify({"error": "Configuration not found"}), 404
 
     # Prepare the response with the relevant fields
     response = {
-        "tenant_id": config.tenant_id,
-        "database_url": config.database_url,  # Corrected field name for clarity
-        "feature_flags": config.feature_flags
+        "tenant_id": db_response.tenant_id,
+        "database_url_hash": db_response.database_url_hash,
+        "feature_flags": db_response.feature_flags
     }
 
     # Cache the response for 5 minutes
@@ -35,7 +37,6 @@ def get_config(tenant_id):
 @token_required
 def add_config():
     data = request.get_json()
-
     # Ensure required fields are present
     if not data or "tenant_id" not in data or "database_url" not in data:
         return jsonify({"error": "Invalid request"}), 400  # 400 Bad Request
@@ -46,10 +47,14 @@ def add_config():
         return jsonify({"error": f"Configuration for {data['tenant_id']} already exists"}), 409  # 409 Conflict
 
     try:
+        payload = {
+            "database_url": data["database_url"]
+        }
+        database_url_hash = generate_token(Config.JWT_SECRET_KEY, payload)
         # Create the new tenant configuration
         config = TenantConfig(
             tenant_id=data["tenant_id"],
-            database_url=data["database_url"],
+            database_url_hash=database_url_hash,
             feature_flags=data.get("feature_flags")
         )
         db.session.add(config)
@@ -72,7 +77,7 @@ def update_config(tenant_id):
         return jsonify({"error": "Configuration not found"}), 404
 
     # Update the relevant fields in the tenant config
-    config.database_url = data.get("database_url", config.database_url)  # Update database_url
+    config.database_url = data.get("database_url_hash", config.database_url)  # Update database_url
     config.feature_flags = data.get("feature_flags", config.feature_flags)  # Update feature_flags
 
     # Commit the changes to the database

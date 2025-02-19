@@ -1,14 +1,10 @@
 import jwt
 import datetime
 
-def generate_token(user_id, secret_key, expiration_hours=1):
+def generate_token(secret_key, payload, expiration_hours=1):
     """
     Generate a JWT token for a given user.
     """
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=expiration_hours)
-    }
     token = jwt.encode(payload, secret_key, algorithm="HS256")
     return token
 
