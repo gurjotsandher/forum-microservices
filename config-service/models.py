@@ -12,7 +12,7 @@ class TenantConfig(db.Model):
     tenant_id = db.Column(db.String(100), unique=True, nullable=False)
 
     # Database URL for the tenant (this will be used to connect to the tenant-specific database)
-    database_url = db.Column(db.String(255), nullable=False)
+    database_url_hash = db.Column(db.String(255), nullable=False)
 
     # Feature flags or other configuration settings in JSON format
     feature_flags = db.Column(db.JSON, nullable=True)

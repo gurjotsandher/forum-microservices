@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_migrate import Migrate
 from werkzeug.exceptions import MethodNotAllowed, HTTPException
 from models import Board, Thread
@@ -15,15 +15,20 @@ from common.error_handlers import (
 from extensions import db, cache
 from routes import db_bp
 
+migrate = Migrate()
+
 def create_app():
     """Factory function to create and configure the Flask app."""
     app = Flask(__name__)
     app.config.from_object("config.Config")
+    app.config['SWAGGER'] = {
+        'version': 1,
+        'title': 'Database Service'
+    }
 
     db.init_app(app)
     cache.init_app(app)
-
-    migrate = Migrate(app, db)
+    migrate.init_app(app, db)
 
     # Register routes
     app.register_blueprint(db_bp, url_prefix='/db')
@@ -37,7 +42,7 @@ def create_app():
         tenant_id = request.headers.get('X-Tenant-ID')
         if tenant_id:
             try:
-                db_url = get_tenant_db_url(tenant_id)
+                db_url = get_tenant_db_url(tenant_id, app.config["JWT_SECRET_KEY"])
                 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
                 app.logger.info(f"Database URL set for tenant {tenant_id}")
             except Exception as e:
