@@ -10,7 +10,6 @@ config_bp = Blueprint("config", __name__)
 @config_bp.route("/get-config/<tenant_id>", methods=["GET"])
 def get_config(tenant_id):
     # Check if the configuration is cached
-    print(f"tenant id => {tenant_id}")
     cached_config = cache.get(tenant_id)
     if cached_config:
         return jsonify(cached_config), 200
