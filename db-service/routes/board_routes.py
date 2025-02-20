@@ -2,8 +2,8 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from marshmallow import ValidationError
-
 from config import Config
+from extensions import cache
 from models import Board, Thread
 from schemas import BoardSchema
 from common.db_utils import get_tenant_db_url
@@ -23,19 +23,24 @@ def get_db_session(tenant_id):
 
 @board_bp.route('/', methods=['POST'])
 def create_board():
+    """Create a new board and invalidate cache."""
     logger = get_dynamic_logger()
     tenant_id = request.headers.get('X-Tenant-ID')
+
     try:
         data = board_schema.load(request.get_json())
     except ValidationError as err:
-        logger.warning(f"Validation Error: {err.messages}")  # Log validation error
+        logger.warning(f"Validation Error: {err.messages}")
         return jsonify({"error": err.messages}), 400
 
     db_session = get_db_session(tenant_id)
     board = Board(name=data['name'], description=data.get('description'))
     db_session.add(board)
     db_session.commit()
-    logger.info(f"Board created: {board.name}, ID: {board.id}")  # Log creation
+
+    cache.delete(f"{tenant_id}/{board_bp.name}/list")
+
+    logger.info(f"Board created: {board.name}, ID: {board.id}")
     return jsonify({"message": "Board created successfully", "board_id": board.id}), 201
 
 @board_bp.route('/', methods=['GET'])
@@ -48,6 +53,13 @@ def get_all_boards():
     search = request.args.get('search', '')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 10))
+
+    cache_key = f"{tenant_id}/{board_bp.name}/list"
+    cached_data = cache.get(cache_key)
+
+    if cached_data:
+        logger.info(f"Cache HIT: Returning cached boards for tenant {tenant_id}")
+        return jsonify(cached_data)
 
     query = db_session.query(Board)
     if search:
@@ -72,6 +84,8 @@ def get_all_boards():
             "threads": [{"id": thread.id, "title": thread.title} for thread in threads]
         })
 
+    cache.set(cache_key, response, timeout=300)
+
     logger.info(f"Retrieved {len(boards)} boards for tenant {tenant_id}")  # Log the number of boards fetched
     return jsonify(response), 200
 
@@ -80,6 +94,14 @@ def get_board(board_id):
     """Retrieve a single board by its ID, including its threads."""
     logger = get_dynamic_logger()
     tenant_id = request.headers.get('X-Tenant-ID')
+
+    cache_key = f"{tenant_id}/{board_bp.name}/{board_id}"
+    cached_data = cache.get(cache_key)
+
+    if cached_data:
+        logger.info(f"Cache HIT: Returning board {board_id} from cache")
+        return jsonify(cached_data)
+
     db_session = get_db_session(tenant_id)
 
     board = db_session.query(Board).get(board_id)
@@ -88,7 +110,17 @@ def get_board(board_id):
         return jsonify({"error": "Board not found"}), 404
 
     threads = db_session.query(Thread).filter_by(board_id=board.id).all()
+    response = {
+        "id": board.id,
+        "name": board.name,
+        "description": board.description,
+        "threads": [{"id": thread.id, "title": thread.title} for thread in threads]
+    }
+
+    cache.set(cache_key, response, timeout=300)
+
     logger.info(f"Retrieved board: {board.name}, ID: {board.id}")  # Log board retrieval
+
     return jsonify({
         "id": board.id,
         "name": board.name,
@@ -116,6 +148,10 @@ def update_board(board_id):
     board.name = data.get('name', board.name)
     board.description = data.get('description', board.description)
     db_session.commit()
+
+    cache.delete(f"{tenant_id}/{board_bp.name}/{board_id}")
+    cache.delete(f"{tenant_id}/{board_bp.name}/list")
+
     logger.info(f"Board updated: {board.name}, ID: {board.id}")  # Log board update
     return jsonify({"message": "Board updated successfully"}), 200
 
@@ -133,5 +169,10 @@ def delete_board(board_id):
 
     db_session.delete(board)
     db_session.commit()
+
+    cache.delete(f"{tenant_id}/{board_bp.name}/{board_id}")
+    cache.delete(f"{tenant_id}/{board_bp.name}/list")
+    cache.delete(f"{tenant_id}/{board_bp.name}/{board_id}/threads")
+
     logger.info(f"Board deleted: ID {board_id}, Tenant: {tenant_id}")  # Log board deletion
     return jsonify({"message": "Board deleted successfully"}), 200

@@ -7,4 +7,6 @@ class Config:
     CACHE_TYPE = os.getenv("CACHE_TYPE")
     CACHE_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default_secret_key")
+    CACHE_DEFAULT_TIMEOUT = 3000
+    CACHE_KEY_PREFIX = ""
 
